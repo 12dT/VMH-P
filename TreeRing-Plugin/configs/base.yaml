@@ -1,0 +1,39 @@
+plugin:
+  name: treering
+  tree_dim: 64
+  dropout: 0.10
+  curvature: 0.25
+  max_tangent_norm: 3.0
+  num_internal: 2
+  beta: 0.30
+  tau_r: 0.07
+  gamma: 0.10
+  tau_e: 0.10
+  relation_mode: geom_residual
+  relation_delta_max: 0.05
+  alpha_pos_init: 0.20
+  alpha_neg_init: 0.20
+  conflict_eta_init: 0.50
+  conflict_kappa_init: 8.0
+  conflict_mu_init: 0.35
+  plugin_gate_init: 0.01
+  plugin_scale_init: 1.0
+
+loss:
+  lambda_tree: 0.50
+  lambda_plugin: 0.50
+  lambda_thc: 0.10
+  lambda_rel: 0.01
+
+warmup:
+  epochs: 8
+  lr: 0.0002
+  patience: 3
+
+train:
+  epochs: 30
+  plugin_lr: 0.0002
+  ufa_lr: 0.0001
+  weight_decay: 0.0001
+  patience: 8
+  seeds: [42, 52, 62]

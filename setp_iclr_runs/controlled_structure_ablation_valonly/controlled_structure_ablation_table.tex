@@ -1,0 +1,30 @@
+\begin{table*}[t]
+\centering
+\caption{Ablation of the structural components in SET-P. All variants share the same frozen host representations, training budget, and validation-based model selection. Randomized variants report mean$\pm$std over three seeds.}
+\label{tab:structure_ablation}
+\footnotesize
+\renewcommand{\arraystretch}{0.95}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}llcccccc@{}}
+\toprule
+\multirow{2}{*}{\textbf{Host}} & \multirow{2}{*}{\textbf{Variant}} & \multicolumn{2}{c}{\textbf{MVSA-Single}} & \multicolumn{2}{c}{\textbf{MVSA-Multiple}} & \multicolumn{2}{c}{\textbf{TumEmo}} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+& & ACC & F1 & ACC & F1 & ACC & F1 \\
+\midrule
+\multirow{4}{*}{CLMLF} & Vertical Only & 70.67 & 70.30 & 71.88 & 69.84 & 70.88 & 70.82 \\
+ & Random Tree & 71.11$\pm$0.31 & 70.46$\pm$0.15 & 71.63$\pm$0.14 & 69.29$\pm$0.31 & 70.80$\pm$0.03 & 70.72$\pm$0.06 \\
+ & Random Relation & 70.52$\pm$0.10 & 70.14$\pm$0.12 & 71.73$\pm$0.14 & 69.50$\pm$0.27 & 70.87$\pm$0.02 & 70.81$\pm$0.02 \\
+ & \textbf{Full SET-P} & 70.67 & 70.25 & 71.53 & 69.08 & 70.83 & 70.79 \\
+\midrule
+\multirow{4}{*}{D2R} & Vertical Only & 74.44 & 73.97 & 70.47 & 68.81 & 74.83 & 74.86 \\
+ & Random Tree & 74.67$\pm$0.63 & 74.11$\pm$0.55 & 70.45$\pm$0.22 & 68.72$\pm$0.21 & 74.82$\pm$0.03 & 74.83$\pm$0.04 \\
+ & Random Relation & 74.52$\pm$0.10 & 74.05$\pm$0.12 & 70.49$\pm$0.19 & 68.92$\pm$0.20 & 74.85$\pm$0.01 & 74.87$\pm$0.01 \\
+ & \textbf{Full SET-P} & 74.22 & 73.72 & 70.29 & 68.57 & 74.83 & 74.85 \\
+\midrule
+\multirow{4}{*}{SPP-SCL} & Vertical Only & 84.44 & 82.87 & 77.76 & 76.11 & 72.34 & 72.41 \\
+ & Random Tree & 85.63$\pm$0.84 & 84.15$\pm$0.90 & 75.98$\pm$0.14 & 74.03$\pm$0.13 & 72.35$\pm$0.02 & 72.42$\pm$0.02 \\
+ & Random Relation & 84.37$\pm$0.10 & 82.80$\pm$0.11 & 77.20$\pm$0.75 & 75.43$\pm$0.88 & 72.30$\pm$0.04 & 72.37$\pm$0.03 \\
+ & \textbf{Full SET-P} & 84.44 & 82.88 & 76.18 & 74.22 & 72.33 & 72.40 \\
+\bottomrule
+\end{tabular*}
+\end{table*}
