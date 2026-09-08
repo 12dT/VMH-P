@@ -1,0 +1,42 @@
+vmhp:
+  tree_dim: 64
+  dropout: 0.10
+  geometry_mode: hyperbolic
+  curvature: 0.25
+  max_tangent_norm: 3.0
+  num_internal: 2
+  beta: 0.30
+  tau_r: 0.07
+  edge_cost_weight: 0.10
+  tau_e: 0.10
+  tau_s: 0.10
+  tau_g: 0.10
+  eta: 0.50
+  lambda_minus: 1.0
+  relation_refinement_mode: multiplicative
+  relation_refinement_clip: 5.0
+  relation_delta_max: 0.05
+  residual_scale_init: 0.0
+
+loss:
+  lambda_str: 0.10
+  lambda_vh: 0.10
+  lambda_hr: 0.01
+
+warmup:
+  epochs: 8
+  lr: 0.0001
+  batch_size: 2048
+  patience: 3
+  lambda_adp: 0.10
+
+train:
+  epochs: 6
+  structured_lr: 0.0003
+  adapter_lr: 0.0001
+  train_adapters: false
+  weight_decay: 0.0001
+  batch_size: 2048
+  patience: 2
+  seed: 42
+  multiseed: [42, 43, 44]

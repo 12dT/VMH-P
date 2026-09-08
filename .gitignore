@@ -17,18 +17,20 @@ env/
 *.ckpt
 *.bin
 *.safetensors
+*.zip
+/iclr2027_conference.pdf
 checkpoint/
 checkpoints/
 save_models/
 logs/
 run_logs/
 runs/
+vmhp_local_runs/
+artifacts/checkpoints/
 data/
 dataset/
 datasets/
 data_cache/
-treering_runs/
-treering_structures/
 
 # OS/editor
 .DS_Store

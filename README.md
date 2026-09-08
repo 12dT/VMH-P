@@ -1,84 +1,63 @@
 # VMH-P: Vertical-Meets-Horizontal Prediction
 
-This repository contains the anonymous artifact for **VMH-P**, a post-hoc
-plug-and-play structured prediction module for multimodal sentiment analysis.
-VMH-P does not modify the frozen host model. Instead, it operates on cached
-host representations and logits, induces explicit vertical and horizontal class
-structures from host-derived class geometry, and refines the final prediction
-with a lightweight structured head.
+This repository contains the anonymous code artifact for **VMH-P**
+(Vertical-Meets-Horizontal Prediction), a post-hoc plug-and-play structured
+prediction module for multimodal sentiment analysis.
 
-The implementation directory is currently named `TreeRing-Plugin/` for
-backward compatibility with the experiment scripts. In the paper, this code
-corresponds to VMH-P.
+VMH-P keeps the host model frozen. It consumes cached host logits and evidence
+features, induces a vertical hyperbolic sentiment hierarchy and a horizontal
+affective relation field from host-derived class geometry, and refines
+predictions through a lightweight residual structured head.
 
 <p align="center">
-  <img src="assets/vmhp_overview.svg" width="92%" alt="VMH-P overview">
+  <img src="assets/overview_framework.svg" width="92%" alt="VMH-P framework">
 </p>
 
-## What Is Included
-
-The public artifact is intended to expose the VMH-P method while avoiding the
-release of full third-party backbone implementations and large raw datasets.
+## Repository Layout
 
 ```text
-TreeRing-Plugin/
-  core/          VMH-P modules: feature adapters, hyperbolic tree,
-                 relation field, source fusion, conflict gate, losses.
-  topology/      Class-center estimation, hierarchy induction, and relation
-                 initialization.
-  adapters/      Lightweight host adapters for cached evidence packets.
-  tools/         Structure initialization, training, evaluation, ablation,
-                 multi-seed, sensitivity, and visualization utilities.
-  configs/       Example configuration files.
-  tests/         Unit tests for geometry, routing, relation, and detach checks.
-  train_plugin.py
+vmhp/
+  core/          Evidence packets, feature adapters, VHSH, HARF, VMHP head, loss.
+  topology/      Class-center estimation, hierarchy induction, relation init.
+  adapters/      Thin adapters for frozen host models or cached features.
+  tools/         Warmup, structure induction, training, evaluation, ablations.
 
-vis/
-  Plotting scripts and paper-ready figures.
-
-setp_iclr_runs/
-  Selected result summaries, tables, and visualization outputs used by the
-  paper. Large checkpoints and cached features should be kept outside the
-  public repository.
+configs/         Example VMH-P hyperparameter configuration.
+tests/           Unit tests for geometry, relation field, routing, and detach checks.
+vis/             Plotting scripts and selected paper figures.
+vmhp_runs/       Lightweight result summaries and figure artifacts.
+assets/          Paper figures used by this README.
 ```
 
-## What Is Not Included
+The public artifact intentionally does not redistribute full CLMLF, D2R, or
+SPP-SCL source trees, raw MVSA/TumEmo data, pretrained checkpoints, or large
+cached feature tensors. Those assets should be obtained from the original
+providers and kept outside this lightweight code repository.
 
-The anonymous release should not redistribute:
+## Method Summary
 
-- full source trees of CLMLF, D2R, or SPP-SCL;
-- raw MVSA-Single, MVSA-Multiple, or TumEmo images/text files;
-- pretrained language/vision checkpoints such as `bert-base-uncased`;
-- large experiment checkpoints, cached feature tensors, logs, or temporary run
-  directories;
-- files under `__pycache__/`, `.pytest_cache/`, `checkpoint/`, `save_models/`,
-  `logs/`, or `run_logs/`.
+VMH-P follows three steps:
 
-Instead, VMH-P only requires frozen host outputs exported into the unified
-cached-feature format described below.
+1. Train or load a multimodal sentiment host model and freeze it.
+2. Export frozen host logits and evidence features into cached `.pt` files.
+3. Train VMH-P on the cached tensors only.
 
-## Method Overview
+The VMH-P head contains:
 
-VMH-P consists of three stages.
+- **VHSH**: a vertical hyperbolic sentiment hierarchy over latent affective
+  regions and fine-grained classes.
+- **HARF**: a horizontal affective relation field with supportive and
+  contrasting class interactions, initialized from class geometry and refined
+  during structured-head training.
+- **Confidence-gated residual prediction**: a lightweight residual correction
+  added to the frozen host logits.
 
-1. **Post-hoc feature caching.** A trained multimodal host model is frozen and
-   used to export its original logits and intermediate evidence features.
-2. **Structure induction.** Class centers are computed from the cached evidence
-   space. VMH-P induces a vertical hierarchy over latent affective regions and
-   initializes a horizontal relation field over sentiment classes.
-3. **Structured prediction refinement.** A lightweight VMH-P head is trained on
-   cached features only. The original host parameters remain detached and are
-   never updated.
-
-The vertical branch models coarse-to-fine decision structure with a hyperbolic
-tree. The horizontal branch models supportive and contrasting inter-class
-relations. The final prediction combines the frozen host logits with the
-structured prediction signal through gated residual refinement.
+Backbone parameters are not updated during VMH-P optimization.
 
 ## Supported Backbones
 
-VMH-P is designed as a host-agnostic post-hoc module. The experiments in the
-paper use three frozen image-text sentiment backbones:
+The paper evaluates VMH-P with three frozen image-text sentiment backbones.
+Their full implementations are external dependencies.
 
 | Backbone | Paper | Code |
 |---|---|---|
@@ -86,43 +65,31 @@ paper use three frozen image-text sentiment backbones:
 | D2R | [D2R: Dual-Branch Dynamic Routing Network for Multimodal Sentiment Detection](https://aclanthology.org/2024.emnlp-main.207/) | [SorF520/D2R](https://github.com/SorF520/D2R) |
 | SPP-SCL | [SPP-SCL: Semi-Push-Pull Supervised Contrastive Learning for Image-Text Sentiment Analysis and Beyond](https://ojs.aaai.org/index.php/AAAI/article/view/37200) | [TomorrowJW/SPP-SCL](https://github.com/TomorrowJW/SPP-SCL) |
 
-The full backbone source trees are not redistributed in this repository. To use
-another backbone, export its frozen logits and evidence features into the
-cached-feature format below and implement a thin adapter if necessary.
-
 ## Datasets
-
-The paper evaluates VMH-P on three public image-text sentiment or emotion
-datasets:
 
 | Dataset | Labels | Link | Citation |
 |---|---:|---|---|
-| MVSA-Single | 3 sentiment classes | [MCRLab MVSA page](https://mcrlab.net/research/mvsa-sentiment-analysis-on-multi-view-social-data/) | Niu et al., MMM 2016 |
-| MVSA-Multiple | 3 sentiment classes | [MCRLab MVSA page](https://mcrlab.net/research/mvsa-sentiment-analysis-on-multi-view-social-data/) | Niu et al., MMM 2016 |
-| TumEmo | 7 emotion classes | [TumEmo/MVAN repository](https://github.com/YangXiaocui1215/MVAN), [paper](https://ieeexplore.ieee.org/document/9246699) | Yang et al., IEEE TMM 2021 |
+| MVSA-Single | 3 | [MCRLab MVSA page](https://mcrlab.net/research/mvsa-sentiment-analysis-on-multi-view-social-data/) | Niu et al., MMM 2016 |
+| MVSA-Multiple | 3 | [MCRLab MVSA page](https://mcrlab.net/research/mvsa-sentiment-analysis-on-multi-view-social-data/) | Niu et al., MMM 2016 |
+| TumEmo | 7 | [TumEmo/MVAN repository](https://github.com/YangXiaocui1215/MVAN) | Yang et al., IEEE TMM 2021 |
 
-Please follow the licenses and access terms of the original dataset providers.
-This repository does not redistribute raw images or raw text files.
+Please follow the licenses and usage terms of the original dataset providers.
 
 ## Installation
-
-The code is written in Python and PyTorch. A minimal environment can be created
-as follows:
 
 ```bash
 conda create -n vmhp python=3.11 -y
 conda activate vmhp
 
-pip install torch numpy scipy scikit-learn pandas matplotlib seaborn pyyaml tqdm pytest
+pip install -r requirements.txt
 ```
 
-If CUDA is required, install the PyTorch build that matches the local CUDA
-driver before installing the remaining packages.
+If CUDA is used, install the PyTorch build that matches the local CUDA driver
+before installing the remaining dependencies.
 
 ## Cached Feature Format
 
-Each split is stored as a `.pt` file containing a Python dictionary. Required
-keys are:
+Each split is stored as a `.pt` dictionary. Required keys:
 
 ```python
 {
@@ -135,21 +102,20 @@ At least one evidence source must also be present:
 
 ```python
 {
-    "text": FloatTensor[N, D_text],          # optional
-    "vision": FloatTensor[N, D_vision],      # optional
-    "multimodal": FloatTensor[N, D_mm],      # optional
-    "routed_text": FloatTensor[N, D_rt],     # optional
-    "routed_vision": FloatTensor[N, D_rv],   # optional
+    "text": FloatTensor[N, D_text],
+    "vision": FloatTensor[N, D_vision],
+    "multimodal": FloatTensor[N, D_mm],
+    "routed_text": FloatTensor[N, D_rt],
+    "routed_vision": FloatTensor[N, D_rv],
 }
 ```
 
-Aliases `image -> vision`, `mm -> multimodal`, and `label -> labels` are handled
-by the loader. Host-specific code only needs to export these tensors; the VMH-P
-core is backbone-agnostic.
+Only the source tensors available for a host need to be exported. The loader
+also accepts `image -> vision`, `mm -> multimodal`, and `label -> labels`.
 
 ## Basic Workflow
 
-Assume the frozen host has exported:
+Assume the frozen host has exported cached features:
 
 ```text
 data_cache/<host>/<dataset>/train_features.pt
@@ -157,19 +123,20 @@ data_cache/<host>/<dataset>/val_features.pt
 data_cache/<host>/<dataset>/test_features.pt
 ```
 
-Warm up the unified feature adapters:
+Warm up the evidence adapters:
 
 ```bash
-python TreeRing-Plugin/tools/warmup_adapters.py \
+python -m vmhp.tools.warmup_adapters \
   --train-features data_cache/clmlf/mvsa_single/train_features.pt \
   --val-features data_cache/clmlf/mvsa_single/val_features.pt \
+  --lambda-adp 0.10 \
   --output runs/clmlf_mvsa_single/ufa_warmup.pt
 ```
 
-Induce the global VMH-P structure:
+Induce the VMH-P structure:
 
 ```bash
-python TreeRing-Plugin/tools/init_structure.py \
+python -m vmhp.tools.init_structure \
   --train-features data_cache/clmlf/mvsa_single/train_features.pt \
   --ufa-warmup runs/clmlf_mvsa_single/ufa_warmup.pt \
   --num-internal 2 \
@@ -177,167 +144,174 @@ python TreeRing-Plugin/tools/init_structure.py \
   --output-dir runs/clmlf_mvsa_single/structure
 ```
 
-Train VMH-P on cached representations:
+Train VMH-P:
 
 ```bash
-python TreeRing-Plugin/train_plugin.py \
+python -m vmhp.tools.train_vmhp \
   --train-features data_cache/clmlf/mvsa_single/train_features.pt \
   --val-features data_cache/clmlf/mvsa_single/val_features.pt \
   --test-features data_cache/clmlf/mvsa_single/test_features.pt \
   --ufa-warmup runs/clmlf_mvsa_single/ufa_warmup.pt \
   --structure runs/clmlf_mvsa_single/structure/structure.pt \
-  --output-dir runs/clmlf_mvsa_single/full_vmhp \
-  --epochs 30 \
-  --patience 8 \
-  --plugin-lr 2e-4 \
-  --ufa-lr 1e-4 \
-  --weight-decay 1e-4
+  --output-dir runs/clmlf_mvsa_single/vmhp \
+  --epochs 6 \
+  --patience 2 \
+  --batch-size 2048 \
+  --structured-lr 3e-4 \
+  --lambda-str 0.10 \
+  --lambda-vh 0.10 \
+  --lambda-hr 0.01
 ```
 
-Optionally train the post-hoc switch selector used by the main-table protocol:
+When a warmup checkpoint is provided, evidence adapters are fixed during VMH-P
+training. `--train-adapters` can be used for diagnostic fine-tuning variants.
+
+Optionally apply the same post-hoc switch-selector protocol used for the main
+table:
 
 ```bash
-python TreeRing-Plugin/tools/train_switch_selector.py \
-  --checkpoint runs/clmlf_mvsa_single/full_vmhp/best_plugin.pt \
+python -m vmhp.tools.train_switch_selector \
+  --checkpoint runs/clmlf_mvsa_single/vmhp/best_vmhp.pt \
   --structure runs/clmlf_mvsa_single/structure/structure.pt \
   --train-features data_cache/clmlf/mvsa_single/train_features.pt \
   --dev-features data_cache/clmlf/mvsa_single/val_features.pt \
   --test-features data_cache/clmlf/mvsa_single/test_features.pt \
   --start-logits final \
-  --alt-logits base,tree,plugin,final \
+  --alt-logits base,tree,structured,final \
   --selection-split dev \
   --rank-by sum \
   --output runs/clmlf_mvsa_single/selector.json
 ```
 
-On shared machines, CPU-only runs can be made less intrusive with:
+On shared machines, restrict CPU threads and use a lower process priority:
 
 ```bash
 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
-nice -n 10 python TreeRing-Plugin/train_plugin.py ...
+nice -n 10 python -m vmhp.tools.train_vmhp ...
 ```
+
+## Default Hyperparameters
+
+The default implementation settings follow the paper:
+
+| Group | Hyperparameters |
+|---|---|
+| Structure | `d=64`, `K=2` for MVSA and `K=3` for TumEmo, `c=0.25`, `beta=0.30`, `tau_r=0.07` |
+| Horizontal field | `eta=0.50`, `lambda_-=1.0`, `lambda_hr=0.01` |
+| Source/residual | `lambda_adp=0.10`, `tau_e=0.10`, `tau_s=0.10`, `tau_g=0.10`, residual scale initialized to `0` |
+| Loss | `lambda_str=0.10`, `lambda_vh=0.10`, `lambda_hr=0.01` |
+| Optimization | AdamW, adapter warmup LR `1e-4`, structured-head LR `3e-4`, weight decay `1e-4`, batch size `2048`, max epochs `6`, patience `2`, seed `42` |
+
+The editable defaults are in `configs/base.yaml`.
 
 ## Main Results
 
-The following values correspond to the current paper table and are reported as
-ACC/F1 (%).
+Values are ACC/F1 (%). Parentheses in the paper table report absolute gains
+over the frozen host.
 
-| Host | MVSA-Single | MVSA-Multiple | TumEmo |
-|---|---:|---:|---:|
-| CLMLF | 80.44 / 78.86 | 77.59 / 73.68 | 72.69 / 72.58 |
-| D2R | 81.78 / 81.26 | 79.24 / 77.80 | 77.24 / 77.27 |
-| SPP-SCL | 88.00 / 87.97 | 82.06 / 81.84 | 75.04 / 75.01 |
+| Host | MVSA-Single Host | MVSA-Single + VMH-P | MVSA-Multiple Host | MVSA-Multiple + VMH-P | TumEmo Host | TumEmo + VMH-P |
+|---|---:|---:|---:|---:|---:|---:|
+| CLMLF | 75.33 / 73.46 | 78.22 / 77.39 | 72.00 / 69.83 | 75.53 / 73.57 | 68.10 / 68.00 | 73.35 / 73.32 |
+| D2R | 76.67 / 75.59 | 78.00 / 77.94 | 71.59 / 70.85 | 76.12 / 74.26 | 74.64 / 74.60 | 77.39 / 77.41 |
+| SPP-SCL | 81.33 / 80.15 | 89.56 / 89.04 | 78.71 / 77.53 | 83.35 / 82.66 | 72.15 / 72.13 | 73.59 / 73.67 |
 
-Selected result files are stored under `setp_iclr_runs/`, including:
+Lightweight result summaries and selected figure outputs are placed in
+`vmhp_runs/`. Large checkpoints and cached features should remain outside the
+public repository.
 
-```text
-setp_iclr_runs/full_setp_multiseed_3seed_selector_maincfg/
-setp_iclr_runs/euclidean_setp_full_ablation/
-setp_iclr_runs/controlled_structure_ablation_valonly/
-setp_iclr_runs/hyperparameter_sensitivity_tumemo_maincfg/
-setp_iclr_runs/induced_class_structure_k3_host_deviation_svg/
-setp_iclr_runs/induced_class_structure_mvsa_appendix/
-```
+## Optional Local Checkpoint Bundle
 
-## Reproducing Appendix Figures
+For local reproduction on the authors' machine, checkpoints and cached host
+representations can be placed under `artifacts/checkpoints/`. This directory is
+ignored by Git and is not part of the anonymous public artifact.
 
-Hyperparameter sensitivity:
-
-```bash
-python vis/plot_hyperparameter_sensitivity_lines.py
-```
-
-Existing figure outputs include:
+The local bundle follows this layout when reproducing only the current main
+table:
 
 ```text
-vis/hyper_sensitivity_lines_abs.pdf
-vis/hyper_sensitivity_lines_abs.svg
-vis/hyper_sensitivity_lines_abs.png
+artifacts/checkpoints/
+  main_table_seed42/
+    SOURCE_MAP.md
+    clmlf/{mvsa_single,mvsa_multiple,tumemo}/{backbone,cache,vmhp}/
+    d2r/{mvsa_single,mvsa_multiple,tumemo}/{backbone,cache,vmhp}/
+    spp_scl/{mvsa_single,mvsa_multiple,tumemo}/{backbone,cache,vmhp}/
 ```
 
-Case-study mining scripts require raw TumEmo samples and are therefore not
-included in the lightweight anonymous artifact.
+Do not add this directory to a public GitHub commit unless the corresponding
+third-party licenses and file-size limits are handled separately.
 
 ## Tests
 
-Run the unit tests with:
-
 ```bash
-pytest TreeRing-Plugin/tests
+python -m pytest -q tests
 ```
 
-The tests cover the core geometry, vertical tree routing, relation field,
-conflict gate, adapter behavior, and detach assumptions.
+The tests cover Lorentz geometry, vertical routing, horizontal relation-field
+constraints, D2R adapter semantics, and the frozen-host detach contract.
 
-## Notes for Anonymous Release
+## Release Notes
 
-For the anonymous GitHub artifact, it is recommended to keep only the VMH-P
-plugin code, scripts, configuration files, selected result summaries, and final
-paper figures. The full host repositories can be referenced as external
-backbones, while the artifact documents how to export the required cached
-feature packets.
-
-Large files can be distributed separately through an anonymous storage link if
-exact end-to-end reproduction is required. The GitHub repository itself should
-remain lightweight and focused on the proposed plug-and-play structured
-prediction method.
+For anonymous review, keep this repository focused on the VMH-P method code,
+configuration files, plotting scripts, selected result summaries, and paper
+figures. Do not commit raw data, full third-party backbone repositories,
+pretrained checkpoints, or large cached tensors.
 
 ## Acknowledgements and Citations
 
-VMH-P builds on public multimodal sentiment and emotion benchmarks and compares
-against existing image-text sentiment backbones. If this repository is useful,
-please cite the original backbone and dataset papers when appropriate.
+This artifact builds on public multimodal sentiment and emotion benchmarks and
+uses external backbone implementations. Please cite the original works when
+using their code or data.
 
 ```bibtex
-@inproceedings{li-etal-2022-clmlf,
+@inproceedings{li2022clmlf,
+  author = {Zhen Li and Bing Xu and Conghui Zhu and Tiejun Zhao},
   title = {{CLMLF}: A Contrastive Learning and Multi-Layer Fusion Method for Multimodal Sentiment Detection},
-  author = {Li, Zhen and Xu, Bing and Zhu, Conghui and Zhao, Tiejun},
   booktitle = {Findings of the Association for Computational Linguistics: NAACL 2022},
   pages = {2282--2294},
-  year = {2022},
   publisher = {Association for Computational Linguistics},
-  url = {https://aclanthology.org/2022.findings-naacl.175/},
-  doi = {10.18653/v1/2022.findings-naacl.175}
+  year = {2022},
+  doi = {10.18653/v1/2022.findings-naacl.175},
+  url = {https://aclanthology.org/2022.findings-naacl.175/}
 }
 
-@inproceedings{chen-etal-2024-d2r,
-  title = {{D}2{R}: Dual-Branch Dynamic Routing Network for Multimodal Sentiment Detection},
-  author = {Chen, Yifan and Li, Kuntao and Mai, Weixing and Wu, Qiaofeng and Xue, Yun and Li, Fenghuan},
+@inproceedings{chen2024d2r,
+  author = {Yifan Chen and Kuntao Li and Weixing Mai and Qiaofeng Wu and Yun Xue and Fenghuan Li},
+  title = {{D2R}: Dual-Branch Dynamic Routing Network for Multimodal Sentiment Detection},
   booktitle = {Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing},
   pages = {3536--3547},
-  year = {2024},
   publisher = {Association for Computational Linguistics},
-  url = {https://aclanthology.org/2024.emnlp-main.207/},
-  doi = {10.18653/v1/2024.emnlp-main.207}
+  year = {2024},
+  doi = {10.18653/v1/2024.emnlp-main.207},
+  url = {https://aclanthology.org/2024.emnlp-main.207/}
 }
 
-@article{wu-li-2026-spp-scl,
+@inproceedings{wu2026sppscl,
+  author = {Jiesheng Wu and Shengrong Li},
   title = {{SPP-SCL}: Semi-Push-Pull Supervised Contrastive Learning for Image-Text Sentiment Analysis and Beyond},
-  author = {Wu, Jiesheng and Li, Shengrong},
-  journal = {Proceedings of the AAAI Conference on Artificial Intelligence},
-  volume = {40},
-  number = {3},
-  pages = {2173--2181},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
   year = {2026},
-  url = {https://ojs.aaai.org/index.php/AAAI/article/view/37200},
-  doi = {10.1609/aaai.v40i3.37200}
+  doi = {10.1609/aaai.v40i3.37200},
+  url = {https://ojs.aaai.org/index.php/AAAI/article/view/37200}
 }
 
 @inproceedings{niu2016mvsa,
+  author = {Teng Niu and Shuhui Zhu and Liangliang Pang and Abdulmotaleb El Saddik},
   title = {Sentiment Analysis on Multi-View Social Data},
-  author = {Niu, Teng and Zhu, Shiai and Pang, Lei and El-Saddik, Abdulmotaleb},
   booktitle = {MultiMedia Modeling},
   pages = {15--27},
-  year = {2016}
+  publisher = {Springer},
+  year = {2016},
+  doi = {10.1007/978-3-319-27674-8_2}
 }
 
 @article{yang2021tumemo,
+  author = {Xiaocui Yang and Shi Feng and Daling Wang and Yifei Zhang},
   title = {Image-Text Multimodal Emotion Classification via Multi-View Attentional Network},
-  author = {Yang, Xiaocui and Feng, Shi and Wang, Daling and Zhang, Yifei},
   journal = {IEEE Transactions on Multimedia},
   volume = {23},
   pages = {4014--4026},
   year = {2021},
-  doi = {10.1109/TMM.2020.3035277}
+  doi = {10.1109/TMM.2020.3035277},
+  url = {https://doi.org/10.1109/TMM.2020.3035277}
 }
 ```

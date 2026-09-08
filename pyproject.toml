@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vmh-p"
+version = "0.1.0"
+description = "Vertical-Meets-Horizontal Prediction for post-hoc multimodal sentiment refinement"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+  "torch",
+  "numpy",
+  "scipy",
+  "scikit-learn",
+  "pandas",
+  "matplotlib",
+  "seaborn",
+  "pyyaml",
+  "tqdm",
+]
+
+[tool.setuptools.packages.find]
+include = ["vmhp*"]

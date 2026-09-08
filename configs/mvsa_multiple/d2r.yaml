@@ -1,0 +1,17 @@
+backbone:
+  name: d2r
+  type: dynamic_msa
+  mode: frozen
+  evidence:
+    text: bert_global
+    vision: vit_global
+    multimodal: final_block_fusion
+    base_logits: original_classifier
+
+vmhp:
+  inherit: ../base.yaml
+  tree_dim: 64
+
+train:
+  dataset: mvsa_multiple
+  select_by: val_f1
