@@ -26,7 +26,12 @@ logs/
 run_logs/
 runs/
 vmhp_local_runs/
-artifacts/checkpoints/
+vis/
+artifacts/checkpoints/**
+!artifacts/checkpoints/
+!artifacts/checkpoints/README.md
+!artifacts/checkpoints/main_table_seed42/
+!artifacts/checkpoints/main_table_seed42/SOURCE_MAP.md
 data/
 dataset/
 datasets/

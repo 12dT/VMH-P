@@ -12,7 +12,6 @@ vmhp:
   tau_s: 0.10
   tau_g: 0.10
   eta: 0.50
-  lambda_minus: 1.0
   relation_refinement_mode: multiplicative
   relation_refinement_clip: 5.0
   relation_delta_max: 0.05

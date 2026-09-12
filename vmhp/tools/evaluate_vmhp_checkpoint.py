@@ -11,7 +11,16 @@ if PLUGIN_ROOT not in sys.path:
 
 from vmhp.tools.common import load_feature_file
 from vmhp.tools.train_vmhp import evaluate
-from vmhp.tools.rescue_search import load_vmhp
+from vmhp.core.vmhp_head import VMHPConfig, VMHPHead
+
+
+def load_vmhp(checkpoint_path: str, device: torch.device):
+    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    cfg = VMHPConfig.from_dict(checkpoint.get("cfg", {}))
+    model = VMHPHead(checkpoint["feature_dims"], checkpoint["num_classes"], cfg).to(device)
+    model.load_state_dict(checkpoint["model"], strict=False)
+    model.eval()
+    return model
 
 
 def fmt(metrics):
@@ -34,7 +43,7 @@ def main():
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_num)
     device = torch.device("cuda" if args.cuda and torch.cuda.is_available() else "cpu")
-    model = load_vmhp(args.checkpoint, None, device)
+    model = load_vmhp(args.checkpoint, device)
     val = load_feature_file(args.val_features)
     test = load_feature_file(args.test_features)
     val_metrics = evaluate(model, val, args.batch_size, device)

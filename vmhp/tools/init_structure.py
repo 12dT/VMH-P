@@ -6,8 +6,7 @@ import torch
 
 from vmhp.tools.common import iter_feature_batches, load_feature_file
 from vmhp.core.vmhp_head import VMHPConfig, VMHPHead
-from vmhp.topology.build_relations import build_relation_inits
-from vmhp.topology.build_tree import build_relation_aware_tree_topology, build_tree_topology
+from vmhp.topology.build_tree import build_tree_topology
 from vmhp.topology.class_centers import compute_class_centers
 
 
@@ -31,10 +30,7 @@ def main():
     parser.add_argument("--ufa-warmup", required=True)
     parser.add_argument("--output-dir", default="runs/structures/default")
     parser.add_argument("--num-internal", type=int, default=2)
-    parser.add_argument("--tree-induction", default="kmeans", choices=["kmeans", "relation_aware"])
-    parser.add_argument("--center-weight", type=float, default=0.35)
-    parser.add_argument("--relation-weight", type=float, default=0.65)
-    parser.add_argument("--negative-weight", type=float, default=0.60)
+    parser.add_argument("--tree-induction", default="kmeans", choices=["kmeans"])
     parser.add_argument("--batch-size", type=int, default=2048)
     parser.add_argument("--cuda", action="store_true")
     parser.add_argument("--gpu-num", default="0")
@@ -52,20 +48,7 @@ def main():
 
     projected, labels = project_all_sources(model, train, args.batch_size, device)
     class_centers = compute_class_centers(projected, labels, warm["num_classes"])
-    if args.tree_induction == "relation_aware":
-        pos_init, neg_init = build_relation_inits(class_centers)
-        relation_init = pos_init - neg_init
-        topology = build_relation_aware_tree_topology(
-            class_centers,
-            relation_init,
-            num_internal=args.num_internal,
-            center_weight=args.center_weight,
-            relation_weight=args.relation_weight,
-            negative_weight=args.negative_weight,
-            random_state=42,
-        )
-    else:
-        topology = build_tree_topology(class_centers, num_internal=args.num_internal, random_state=42, n_init=50)
+    topology = build_tree_topology(class_centers, num_internal=args.num_internal, random_state=42, n_init=50)
 
     model.initialize_from_class_centers(class_centers.to(device), topology=topology)
     structure = model.export_structure()

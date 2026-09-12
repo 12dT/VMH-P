@@ -1,13 +1,14 @@
-# VMH-P: Vertical-Meets-Horizontal Prediction
+# VMH-P: Disentangling Affective Geometry for Plug-and-Play Structured Prediction
 
 This repository contains the anonymous code artifact for **VMH-P**
-(Vertical-Meets-Horizontal Prediction), a post-hoc plug-and-play structured
-prediction module for multimodal sentiment analysis.
+(Vertical-Meets-Horizontal Prediction), a plug-and-play structured prediction
+module for multimodal sentiment analysis.
 
 VMH-P keeps the host model frozen. It consumes cached host logits and evidence
-features, induces a vertical hyperbolic sentiment hierarchy and a horizontal
-affective relation field from host-derived class geometry, and refines
-predictions through a lightweight residual structured head.
+features, disentangles host-derived affective geometry into a vertical
+hyperbolic hierarchy and a horizontal affective relation field, and refines
+predictions through the confidence-gated residual structured head described in
+the paper.
 
 <p align="center">
   <img src="assets/overview_framework.svg" width="92%" alt="VMH-P framework">
@@ -24,7 +25,6 @@ vmhp/
 
 configs/         Example VMH-P hyperparameter configuration.
 tests/           Unit tests for geometry, relation field, routing, and detach checks.
-vis/             Plotting scripts and selected paper figures.
 vmhp_runs/       Lightweight result summaries and figure artifacts.
 assets/          Paper figures used by this README.
 ```
@@ -140,7 +140,7 @@ python -m vmhp.tools.init_structure \
   --train-features data_cache/clmlf/mvsa_single/train_features.pt \
   --ufa-warmup runs/clmlf_mvsa_single/ufa_warmup.pt \
   --num-internal 2 \
-  --tree-induction relation_aware \
+  --tree-induction kmeans \
   --output-dir runs/clmlf_mvsa_single/structure
 ```
 
@@ -165,23 +165,8 @@ python -m vmhp.tools.train_vmhp \
 
 When a warmup checkpoint is provided, evidence adapters are fixed during VMH-P
 training. `--train-adapters` can be used for diagnostic fine-tuning variants.
-
-Optionally apply the same post-hoc switch-selector protocol used for the main
-table:
-
-```bash
-python -m vmhp.tools.train_switch_selector \
-  --checkpoint runs/clmlf_mvsa_single/vmhp/best_vmhp.pt \
-  --structure runs/clmlf_mvsa_single/structure/structure.pt \
-  --train-features data_cache/clmlf/mvsa_single/train_features.pt \
-  --dev-features data_cache/clmlf/mvsa_single/val_features.pt \
-  --test-features data_cache/clmlf/mvsa_single/test_features.pt \
-  --start-logits final \
-  --alt-logits base,tree,structured,final \
-  --selection-split dev \
-  --rank-by sum \
-  --output runs/clmlf_mvsa_single/selector.json
-```
+The final prediction is produced directly from the VMH-P confidence-gated
+residual logits described in the paper.
 
 On shared machines, restrict CPU threads and use a lower process priority:
 
@@ -197,7 +182,7 @@ The default implementation settings follow the paper:
 | Group | Hyperparameters |
 |---|---|
 | Structure | `d=64`, `K=2` for MVSA and `K=3` for TumEmo, `c=0.25`, `beta=0.30`, `tau_r=0.07` |
-| Horizontal field | `eta=0.50`, `lambda_-=1.0`, `lambda_hr=0.01` |
+| Horizontal field | `eta=0.50`, `lambda_hr=0.01` |
 | Source/residual | `lambda_adp=0.10`, `tau_e=0.10`, `tau_s=0.10`, `tau_g=0.10`, residual scale initialized to `0` |
 | Loss | `lambda_str=0.10`, `lambda_vh=0.10`, `lambda_hr=0.01` |
 | Optimization | AdamW, adapter warmup LR `1e-4`, structured-head LR `3e-4`, weight decay `1e-4`, batch size `2048`, max epochs `6`, patience `2`, seed `42` |
@@ -215,15 +200,15 @@ over the frozen host.
 | D2R | 76.67 / 75.59 | 78.00 / 77.94 | 71.59 / 70.85 | 76.12 / 74.26 | 74.64 / 74.60 | 77.39 / 77.41 |
 | SPP-SCL | 81.33 / 80.15 | 89.56 / 89.04 | 78.71 / 77.53 | 83.35 / 82.66 | 72.15 / 72.13 | 73.59 / 73.67 |
 
-Lightweight result summaries and selected figure outputs are placed in
-`vmhp_runs/`. Large checkpoints and cached features should remain outside the
-public repository.
+Lightweight result summaries are placed in `vmhp_runs/`. Large frozen-backbone
+checkpoints and cached features should remain outside the public repository.
 
 ## Optional Local Checkpoint Bundle
 
-For local reproduction on the authors' machine, checkpoints and cached host
-representations can be placed under `artifacts/checkpoints/`. This directory is
-ignored by Git and is not part of the anonymous public artifact.
+For local reproduction on the authors' machine, frozen-backbone checkpoints,
+cached host representations, and VMH-P checkpoint files can be placed under
+`artifacts/checkpoints/`. The public artifact only tracks layout documentation;
+binary experiment artifacts are ignored by Git.
 
 The local bundle follows this layout when reproducing only the current main
 table:
@@ -237,8 +222,9 @@ artifacts/checkpoints/
     spp_scl/{mvsa_single,mvsa_multiple,tumemo}/{backbone,cache,vmhp}/
 ```
 
-Do not add this directory to a public GitHub commit unless the corresponding
-third-party licenses and file-size limits are handled separately.
+Do not add frozen-backbone checkpoints or cached feature tensors to a public
+GitHub commit unless the corresponding third-party licenses and file-size limits
+are handled separately.
 
 ## Tests
 
@@ -252,9 +238,9 @@ constraints, D2R adapter semantics, and the frozen-host detach contract.
 ## Release Notes
 
 For anonymous review, keep this repository focused on the VMH-P method code,
-configuration files, plotting scripts, selected result summaries, and paper
-figures. Do not commit raw data, full third-party backbone repositories,
-pretrained checkpoints, or large cached tensors.
+configuration files, selected result summaries, and paper figures. Do not commit
+raw data, full third-party backbone repositories, pretrained checkpoints,
+VMH-P checkpoint binaries, or large cached tensors.
 
 ## Acknowledgements and Citations
 

@@ -12,11 +12,6 @@ from .packet import EvidencePacket
 from .vertical_hierarchy import VerticalHyperbolicSentimentHierarchy
 
 
-def _inv_softplus(value: float) -> torch.Tensor:
-    x = torch.as_tensor(float(value)).clamp_min(1e-8)
-    return torch.log(torch.expm1(x))
-
-
 @dataclass
 class VMHPConfig:
     tree_dim: int = 64
@@ -32,7 +27,6 @@ class VMHPConfig:
     tau_s: float = 0.10
     tau_g: float = 0.10
     eta: float = 0.50
-    lambda_minus: float = 1.0
     relation_delta_max: float = 0.05
     relation_refinement_mode: str = "multiplicative"
     relation_refinement_clip: float = 5.0
@@ -41,8 +35,6 @@ class VMHPConfig:
     relation_empty_row_floor: float = 1e-3
     residual_scale_init: float = 0.0
     horizontal_only: bool = False
-    enable_base_calibration: bool = False
-    base_scale_init: float = 1.0
 
     @classmethod
     def from_dict(cls, values: Optional[Dict]) -> "VMHPConfig":
@@ -104,13 +96,6 @@ class VMHPHead(nn.Module):
         )
 
         self.residual_scale = nn.Parameter(torch.as_tensor(float(self.cfg.residual_scale_init)))
-        self.raw_base_scale = nn.Parameter(_inv_softplus(self.cfg.base_scale_init))
-        self.raw_base_class_scale = nn.Parameter(torch.zeros(self.num_classes))
-        self.base_class_bias = nn.Parameter(torch.zeros(self.num_classes))
-
-    @property
-    def base_scale(self) -> torch.Tensor:
-        return F.softplus(self.raw_base_scale)
 
     @property
     def tree(self):
@@ -171,16 +156,9 @@ class VMHPHead(nn.Module):
             "relation_refinement_mode": self.harf.refinement_mode,
         }
 
-    def calibrate_base_logits(self, base_logits: torch.Tensor) -> torch.Tensor:
-        if not self.cfg.enable_base_calibration:
-            return base_logits
-        unit = F.softplus(torch.zeros((), device=base_logits.device, dtype=base_logits.dtype))
-        class_scale = F.softplus(self.raw_base_class_scale).view(1, -1) / unit
-        return self.base_scale * class_scale * base_logits + self.base_class_bias.view(1, -1)
-
     def _relation_matrix(self) -> Dict[str, torch.Tensor]:
         A_pos, A_neg = self.harf.get_relations()
-        relation = A_pos - float(self.cfg.lambda_minus) * A_neg
+        relation = A_pos - A_neg
         return {"A_pos": A_pos, "A_neg": A_neg, "relation": relation}
 
     def _confidence_gate(self, base_logits: torch.Tensor, structured_logits: torch.Tensor) -> torch.Tensor:
@@ -198,7 +176,7 @@ class VMHPHead(nn.Module):
         if not use_vmhp:
             return packet.base_logits, {"vmhp_disabled": True}
 
-        base_logits = self.calibrate_base_logits(packet.base_logits)
+        base_logits = packet.base_logits
         relation_info = self._relation_matrix()
         relation = relation_info["relation"]
 
@@ -240,7 +218,6 @@ class VMHPHead(nn.Module):
 
         aux = {
             "base_logits": packet.base_logits,
-            "calibrated_base_logits": base_logits,
             "vertical_logits": vertical_logits,
             "structured_logits": structured_logits,
             "relation_logits": structured_logits,

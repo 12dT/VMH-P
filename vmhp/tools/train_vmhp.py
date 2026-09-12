@@ -85,14 +85,12 @@ def main():
     parser.add_argument("--num-internal", type=int, default=None)
     parser.add_argument("--curvature", type=float, default=None)
     parser.add_argument("--eta", type=float, default=None)
-    parser.add_argument("--lambda-minus", type=float, default=None)
     parser.add_argument("--residual-scale-init", type=float, default=None)
     parser.add_argument("--relation-refinement-mode", choices=["multiplicative", "multiplicative_gain", "additive"], default=None)
     parser.add_argument("--relation-refinement-clip", type=float, default=None)
     parser.add_argument("--relation-gain-clip", type=float, default=None)
     parser.add_argument("--relation-empty-row-mass", type=float, default=None)
     parser.add_argument("--relation-empty-row-floor", type=float, default=None)
-    parser.add_argument("--enable-base-calibration", action="store_true")
     parser.add_argument("--horizontal-only", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--cuda", action="store_true")
@@ -120,8 +118,6 @@ def main():
         cfg.curvature = float(args.curvature)
     if args.eta is not None:
         cfg.eta = float(args.eta)
-    if args.lambda_minus is not None:
-        cfg.lambda_minus = float(args.lambda_minus)
     if args.residual_scale_init is not None:
         cfg.residual_scale_init = float(args.residual_scale_init)
     if args.relation_refinement_mode is not None:
@@ -134,7 +130,6 @@ def main():
         cfg.relation_empty_row_mass = float(args.relation_empty_row_mass)
     if args.relation_empty_row_floor is not None:
         cfg.relation_empty_row_floor = float(args.relation_empty_row_floor)
-    cfg.enable_base_calibration = bool(args.enable_base_calibration)
     if args.horizontal_only:
         cfg.horizontal_only = True
 

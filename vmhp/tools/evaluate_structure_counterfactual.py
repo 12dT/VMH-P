@@ -10,7 +10,7 @@ if PLUGIN_ROOT not in sys.path:
     sys.path.insert(0, PLUGIN_ROOT)
 
 from vmhp.tools.common import load_feature_file
-from vmhp.tools.rescue_search import load_vmhp
+from vmhp.tools.evaluate_vmhp_checkpoint import load_vmhp
 from vmhp.tools.train_vmhp import evaluate
 
 
@@ -95,7 +95,7 @@ def main():
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_num)
     device = torch.device("cuda" if args.cuda and torch.cuda.is_available() else "cpu")
-    model = load_vmhp(args.checkpoint, None, device)
+    model = load_vmhp(args.checkpoint, device)
     applied = apply_counterfactual(model, args.mode, args.structure)
     model.eval()
 
@@ -111,9 +111,6 @@ def main():
         "mode": args.mode,
         "override_structure_path": args.structure,
         "counterfactual": applied,
-        "selection_split": checkpoint.get("selection_split"),
-        "selection_metric": checkpoint.get("selection_metric"),
-        "selection_score": checkpoint.get("selection_score"),
         "val_features": args.val_features,
         "test_features": args.test_features,
         "val": fmt(val_metrics),
